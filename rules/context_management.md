@@ -31,15 +31,22 @@ Whenever a user provides a conversation UUID (or asks to inspect, resume, or deb
 
 ## Directive 2: Search Scope Assessment & Mandatory Subagent Isolation
 
-Before executing wide searches, repository exploration, or multi-file inspections, the agent must estimate the search scope:
+Before executing wide searches, repository exploration, or multi-file inspections, the agent must estimate the search scope and prioritize indexed lookups:
 
-1. **Scope Thresholds**:
+1. **Knowledge Graph & Index Pre-Query (Graphify / AST First)**:
+   - If a knowledge graph or semantic index exists in the project (e.g., `graphify-out/graph.json` or `graphify-out/wiki/index.md`):
+     - **Query the graph first** via CLI/MCP (`graphify query`, `graphify path`, `graphify explain`) to retrieve a scoped subgraph.
+     - A successful graph query typically resolves the target context in < 20 lines, bypassing multi-file scans entirely.
+     - If `graphify-out/wiki/index.md` exists, navigate relevant community articles instead of scanning raw codebase trees.
+
+2. **Scope Thresholds (When to Delegate to Subagents)**:
    - Touching or reading **more than 8–10 files**.
    - Scanning large directory trees or unstructured logs.
+   - Performing full codebase extractions or unindexed multi-document surveys (e.g. running full `/graphify` semantic extraction).
    - Investigating another conversation's raw logs or trajectory (`brain/<uuid>/`).
    - Deep codebase research or broad external documentation surveys.
 
-2. **Mandatory Subagent Delegation**:
+3. **Mandatory Subagent Delegation**:
    - When the search scope exceeds the threshold, the agent **MUST invoke an isolated subagent** (e.g., `invoke_subagent` with `TypeName="research"` or `TypeName="self"` and `Workspace="inherit"`).
    - **Why**: Subagents run with their own isolated context. All intermediate tool calls, verbose file reads, and search outputs stay inside the subagent's sandbox.
    - **Handoff Requirement**: The subagent must return **only a compact summary** (findings, target file paths, specific line numbers, or synthesized answers) back to the parent agent. The parent agent's context remains clean and lightweight.
@@ -52,8 +59,8 @@ Before executing wide searches, repository exploration, or multi-file inspection
    - Avoid reading entire files exceeding 200 lines. Use `StartLine` and `EndLine` to read only relevant symbol ranges or functions.
 2. **Command Output Limiting**:
    - Limit verbose shell outputs using pipes or flags (e.g. `git log -n 5`, `head -n 50`, `Select-Object -First 30`).
-3. **No Minified / Binary / Bundle Dumps**:
-   - Never load minified bundles, build outputs (`dist/`, `build/`, `bin/`), or raw database files into context.
+3. **No Minified / Binary / Bundle / Raw Graph Dumps**:
+   - Never load minified bundles, build outputs (`dist/`, `build/`, `bin/`), raw database files, or raw serialized graphs (e.g. calling `view_file` on `graphify-out/graph.json` or an un-sliced `GRAPH_REPORT.md`) into context. Always query graphs through their dedicated CLI/MCP tools.
 
 ---
 
@@ -62,8 +69,9 @@ Before executing wide searches, repository exploration, or multi-file inspection
 - Autonomous multi-turn conversations compound context size on every step.
 - When an ongoing session approaches **250–300 steps** or completes a significant milestone:
   1. Commit working code to git.
-  2. Write/update `walkthrough.md` and `task.md` summarizing progress and next steps.
-  3. Suggest rolling over to a fresh session: *"Milestone complete. A fresh session can pick up from `task.md` and git commits with zero context overhead."*
+  2. Keep persistent knowledge graphs synchronized (e.g. run `graphify update .` to refresh AST state without LLM token cost).
+  3. Write/update `walkthrough.md` and `task.md` summarizing progress and next steps.
+  4. Suggest rolling over to a fresh session: *"Milestone complete. A fresh session can pick up from `task.md` and git commits with zero context overhead."*
 
 ---
 

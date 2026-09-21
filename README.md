@@ -80,21 +80,22 @@ flowchart TD
   3. Grep bounded line ranges only if specific stack traces are missing.
 
 ### 2. Search Scope Assessment & Mandatory Subagent Isolation
-- **Threshold**: Triggered when touching **> 8–10 files**, scanning large trees, or reviewing external trajectory logs.
-- **Mechanism**: The parent agent **must delegate** the work to an isolated subagent sandbox.
+- **Index-First Principle**: If a knowledge graph exists (e.g. `graphify-out/`), query it first via CLI/MCP (`graphify query`, `graphify path`). A targeted subgraph query frequently answers questions in < 20 lines without touching source files.
+- **Threshold**: When an operation requires touching **> 8–10 files**, scanning raw trees, or processing unindexed documents, the parent agent **must delegate** the work to an isolated subagent sandbox.
 - **Handoff Requirement**: The subagent processes thousands of tokens in its isolated sandbox and returns **only a compact, synthesized summary** to the parent agent.
 
 ### 3. Bounded File Reading & Output Hygiene
 - **Selective Slicing**: Files exceeding 200 lines are read using bounded slice windows (`StartLine`/`EndLine`).
 - **Piped Terminal Outputs**: Unbounded terminal commands must use truncation (`head -n 50`, `Select-Object -First 30`, `git log -n 5`).
-- **No Bundle Dumps**: Never load minified assets (`*.min.js`), lockfiles, or binary files into conversation history.
+- **No Bundle or Raw Graph Dumps**: Never load minified assets (`*.min.js`), lockfiles, raw binary files, or raw graph database dumps (e.g. calling `view_file` on `graphify-out/graph.json`) into conversation history.
 
 ### 4. Milestone Checkpointing (The 250–300 Step Rule)
 - Long multi-turn conversations naturally compound latency.
 - Upon approaching 250–300 steps or completing a key milestone:
   1. Commit working code to git.
-  2. Update `walkthrough.md` and `task.md`.
-  3. Suggest rolling over to a fresh session to continue from git and `task.md` with zero token overhead.
+  2. Keep persistent indexes synchronized (e.g. `graphify update .` to refresh AST state with zero token cost).
+  3. Update `walkthrough.md` and `task.md`.
+  4. Suggest rolling over to a fresh session to continue from git and `task.md` with zero token overhead.
 
 ### 5. Proactive Dual-Channel Rollover Alerts
 When conversation database sizes (> 15 MB) or step counts (> 250) cross thresholds, the agent delivers an immediate **two-channel warning**:
@@ -146,6 +147,7 @@ cat rules/claude_code.md >> CLAUDE.md
 
 ## 📚 Deep Dive Documentation
 
+- **[Integrations & Synergy: The Two-Tier Context Architecture](docs/INTEGRATIONS.md)**: How these directives harmonize seamlessly with **Graphify**, GraphRAG, and AST indexers to create a complete static + dynamic context solution.
 - **[Architecture & Theory](docs/ARCHITECTURE.md)**: Mathematical and architectural breakdown of context compounding, KV-cache re-ingestion, and subagent state boundaries.
 - **[Before & After Examples](docs/EXAMPLES.md)**: Real-world engineering scenarios comparing unconstrained vs optimized agent runs.
 
