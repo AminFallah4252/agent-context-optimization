@@ -1,0 +1,26 @@
+# OS Generated Files
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Environment and Secrets
+*.env
+*.env.*
+*.token
+*.key
+*Credentials*
+*AccessToken*
+*Secret*
+
+# Editor and IDE Files
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Temporary Files and Logs
+*.log
+transcript*.jsonl
+*.db
+tmp/
+temp/
